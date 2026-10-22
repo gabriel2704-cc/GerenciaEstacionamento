@@ -1,6 +1,6 @@
 # Gerenciamento de Estacionamento
 
-Controlole de **vagas**, **veículos** e **permanências** (entrada e saída).
+Controle de **vagas**, **veículos** e **permanências** (entrada e saída).
 
 ## Links
 
@@ -10,32 +10,33 @@ Controlole de **vagas**, **veículos** e **permanências** (entrada e saída).
 
 ## Antes de começar
 
-- `schema.sql`: cria as tabelas `vagas`, `veiculos` e `permanencias` (esta liga as outras duas por chave estrangeira).
-- `config.js` (backend): configuração do Knex/Objection, com o banco local e o de produção.
-- `.env` (frontend): endereço da API. Por padrão aponta para a rota local.
+- `estacionamento-backend/schema.sql`: cria as tabelas `vagas`, `veiculos` e `permanencias` (esta liga as outras duas por chave estrangeira).
+- `estacionamento-backend/config.js`: configuração do Knex/Objection, com o banco local e o de produção.
+- `estacionamento-frontend/.env`: endereço da API (variável `REACT_APP_ENDERECO_API`). Veja o `.env.example`.
 
 ## Rodando na minha máquina
 
-1. Crie o banco e execute o `schema.sql` nele.
-2. Backend:
+1. Crie o banco `estacionamento` no PostgreSQL e execute o `schema.sql` nele.
+2. Backend (porta 3001):
    ```bash
-   cd backend
+   cd estacionamento-backend
    npm install
    npm start
    ```
-3. Frontend:
+3. Frontend: crie o arquivo `estacionamento-frontend/.env` com
+   `REACT_APP_ENDERECO_API=http://localhost:3001` e rode:
    ```bash
-   cd frontend
+   cd estacionamento-frontend
    npm install
-   npm run dev
+   npm start
    ```
 
 ## Roteiro de teste no Postman
 
 1. Crie uma **Collection** e um **Environment** com a variável `url`:
    - produção: `https://estacionamento-api-f1zu.onrender.com`
-   - local: troque só o valor de `url`.
-2. Execute nesta ordem:
+   - local: `http://localhost:3001`
+2. Execute nesta ordem (corpo em JSON, sem autenticação):
 
 | # | Requisição | O que mostra |
 |---|------------|--------------|
@@ -43,11 +44,20 @@ Controlole de **vagas**, **veículos** e **permanências** (entrada e saída).
 | 2 | `POST {{url}}/veiculos` | insert em veículos |
 | 3 | `POST {{url}}/permanencias` | insert usando as duas chaves estrangeiras |
 | 4 | `GET {{url}}/permanencias` | leitura com JOIN |
-| 5 | `PUT {{url}}/permanencias` | update: registra a saída |
-| 6 | `DELETE {{url}}/permanencias/:id` | delete (apaga o que o teste criou) |
+| 5 | `PUT {{url}}/permanencias` | update: registra a saída (o `id` vai no corpo) |
+| 6 | `DELETE {{url}}/permanencias/:id` | delete |
 
-Os testes em produção gravam no banco publicado, por isso o último passo remove o registro criado.
+Exemplos de corpo:
+
+```json
+POST /vagas          { "numero": "A01", "tipo": "carro", "status": "ativa" }
+POST /veiculos       { "placa": "ABC1D23", "modelo": "Gol", "cor": "Prata" }
+POST /permanencias   { "vaga_id": 1, "veiculo_id": 1, "entrada": "2026-10-21T08:00" }
+PUT  /permanencias   { "id": 1, "vaga_id": 1, "veiculo_id": 1, "entrada": "2026-10-21T08:00", "saida": "2026-10-21T10:00" }
+```
+
+Os testes em produção gravam no banco publicado. Ao final, apague o que criou (a permanência, depois o veículo e a vaga).
 
 ## Regras testadas pelo frontend
 
-Duplicidade de placa, vaga já ocupada, saída antes da entrada e exclusão de registro com histórico aparecem como mensagem na interface.
+Placa duplicada, vaga ocupada ou inativa, saída antes da entrada e exclusão de vaga ou veículo com histórico aparecem como mensagem na interface.
